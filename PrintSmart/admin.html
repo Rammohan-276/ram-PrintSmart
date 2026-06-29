@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel - PrintSmart</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-950 text-white p-6">
+
+<h2 class="text-2xl font-bold mb-6">🛠 Shop Approval Panel</h2>
+
+<div id="shopRequests" class="space-y-6"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+  authDomain: "printsmart-ebcdd.firebaseapp.com",
+  databaseURL: "https://printsmart-ebcdd-default-rtdb.firebaseio.com",
+  projectId: "printsmart-ebcdd"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const container = document.getElementById("shopRequests");
+
+// ✅ PASSWORD GENERATOR
+function generatePassword(){
+  return "PS@" + Math.floor(10000 + Math.random() * 90000);
+}
+
+// ✅ FETCH REQUESTS
+onValue(ref(db, "shopRequests"), snap => {
+  container.innerHTML = "";
+
+  if (!snap.exists()) {
+    container.innerHTML = `<p class="text-gray-400">No shop approval requests pending</p>`;
+    return;
+  }
+
+  const data = snap.val();
+
+  for (let id in data) {
+    const shop = data[id];
+
+    container.innerHTML += `
+      <div class="bg-gray-900 p-5 rounded-xl border border-gray-700 space-y-2">
+        <h3 class="text-indigo-400 font-bold text-lg">${shop.shopName}</h3>
+        <p><b>City:</b> ${shop.city}</p>
+        <p><b>Mobile:</b> ${shop.mobile}</p>
+        <p><b>UPI:</b> ${shop.upi}</p>
+
+        <div class="flex gap-3 mt-4">
+          <button onclick="approveShop('${id}')"
+            class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+            ✅ Approve
+          </button>
+
+          <button onclick="rejectShop('${id}')"
+            class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+            ❌ Reject
+          </button>
+        </div>
+      </div>
+    `;
+  }
+});
+
+// ✅ APPROVE SHOP
+window.approveShop = async (id) => {
+  const requestRef = ref(db, `shopRequests/${id}`);
+
+  const snapshot = await new Promise(resolve => {
+    onValue(requestRef, snap => resolve(snap), { onlyOnce: true });
+  });
+
+  const shop = snapshot.val();
+  const generatedPassword = generatePassword();
+
+  // ✅ WRITE APPROVED SHOP
+  await set(ref(db, `shops/${id}`), {
+    name: shop.shopName,
+    city: shop.city,
+    mobile: shop.mobile,
+    upi: shop.upi,
+    password: generatedPassword,
+    approved: true,
+    createdAt: Date.now()
+  });
+
+  // ✅ DELETE REQUEST
+  await remove(requestRef);
+
+  // ✅ SHOW PASSWORD TO ADMIN
+  alert(
+`✅ SHOP APPROVED!
+
+Shop: ${shop.shopName}
+Mobile: ${shop.mobile}
+
+LOGIN CREDENTIALS:
+Mobile: ${shop.mobile}
+Password: ${generatedPassword}
+
+Send this password to shop owner manually.`
+  );
+};
+
+// ✅ REJECT SHOP
+window.rejectShop = async (id) => {
+  await remove(ref(db, `shopRequests/${id}`));
+};
+</script>
+
+</body>
+</html>

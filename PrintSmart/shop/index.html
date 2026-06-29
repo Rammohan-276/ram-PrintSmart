@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Login - PrintSmart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <style>
+    body {
+      background: linear-gradient(to bottom, #1e1b4b 0%, #020617 40%, #000000 100%);
+      background-attachment: fixed;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style> 
+</head>
+<body class="text-slate-100 h-screen flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm glass p-8 rounded-2xl shadow-2xl">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">PrintSmart</h1>
+      <p class="text-slate-400 text-sm tracking-widest uppercase mt-2">Partner Login</p>
+    </div>
+
+    <form id="loginForm" class="space-y-5">
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase">Mobile Number</label>
+        <div class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 p-3 rounded-xl mt-1 focus-within:border-indigo-500 transition-colors">
+          <i class="fas fa-phone text-indigo-400"></i>
+          <input type="text" id="mobile" required placeholder="Mobile" class="bg-transparent w-full outline-none text-sm placeholder-slate-600">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase">Password</label>
+        <div class="flex items-center gap-3 bg-slate-900/50 border border-slate-700 p-3 rounded-xl mt-1 focus-within:border-indigo-500 transition-colors">
+          <i class="fas fa-lock text-indigo-400"></i>
+          <input type="password" id="password" required placeholder="••••••" class="bg-transparent w-full outline-none text-sm placeholder-slate-600">
+        </div>
+      </div>
+
+      <p id="errorMsg" class="text-red-400 text-xs text-center hidden"></p>
+
+      <button type="submit" id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
+        Login to Dashboard
+      </button>
+    </form>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+      authDomain: "printsmart-ebcdd.firebaseapp.com",
+      databaseURL: "https://printsmart-ebcdd-default-rtdb.firebaseio.com",
+      projectId: "printsmart-ebcdd"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const loginForm = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const mobile = document.getElementById('mobile').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      // UI Loading
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Verifying...";
+      errorMsg.classList.add('hidden');
+
+      try {
+        // 1. Query DB: Find shop where 'mobile' == input
+        const shopsRef = ref(db, 'shops');
+        const q = query(shopsRef, orderByChild('mobile'), equalTo(mobile));
+        
+        const snapshot = await get(q);
+
+        if (snapshot.exists()) {
+          // Firebase returns an object of matches. Since mobile should be unique, we take the first one.
+          const data = snapshot.val();
+          const shopId = Object.keys(data)[0]; // This gets "-OefXEbk..."
+          const shopData = data[shopId];
+
+          // 2. Check Password
+          if (shopData.password === password) {
+            // SUCCESS: Save ID to session
+            localStorage.setItem('shopId', shopId);
+            localStorage.setItem('shopName', shopData.name);
+            
+            // Redirect
+            window.location.href = "/shop/dashboard.html";
+          } else {
+            throw new Error("Invalid Password");
+          }
+        } else {
+          throw new Error("Mobile number not registered");
+        }
+
+      } catch (error) {
+        console.error(error);
+        errorMsg.textContent = error.message;
+        errorMsg.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login to Dashboard";
+      }
+    });
+  </script>
+</body>
+</html>

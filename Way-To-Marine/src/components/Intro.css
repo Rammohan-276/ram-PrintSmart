@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+.intro-container {
+  height: 100vh; /* full screen */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background: url("../assets/ocean.jpg") no-repeat center center;
+  background-size: cover; /* make sure it covers the whole screen */
+  position: relative;
+  overflow: hidden;
+}
+
+.intro-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 5rem;
+  font-weight: bold;
+  color: rgb(132, 164, 172); /* so it stands out on the background */
+  z-index: 2; /* keep text above fish */
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+}
+
+.fish {
+  position: absolute;
+  bottom: 20%;
+  left: -150px;
+  width: 120px;
+  animation: swim 15s linear infinite;
+  z-index: 1; /* fish behind text */
+}
+
+@keyframes swim {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}

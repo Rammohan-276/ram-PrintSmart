@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login - PrintSmart</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at top left, #1e1b4b 0%, #020617 35%, #000000 100%),
+        linear-gradient(180deg, #312e81 0%, #020617 50%, #000000 100%);
+      background-attachment: fixed;
+      background-size: cover;
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(99, 102, 241, 0.22);
+    }
+
+    .glow-btn {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      transition: all 0.3s ease;
+    }
+    .glow-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    }
+  </style>
+</head>
+
+<body class="text-slate-100">
+
+<div class="min-h-screen flex items-center justify-center px-3">
+
+  <div class="w-full max-w-xs sm:max-w-md glass-card rounded-2xl p-5 sm:p-8 shadow-2xl">
+
+    <div class="text-center mb-5">
+      <div class="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 via-violet-500 to-sky-400 shadow-lg">
+        <span class="font-black">PS</span>
+      </div>
+      <h2 class="text-lg sm:text-2xl font-bold">Welcome Back</h2>
+      <p class="text-slate-400 text-xs">Login to continue</p>
+    </div>
+
+    <button onclick="googleLogin()" class="w-full flex items-center justify-center gap-2 bg-white text-slate-800 font-semibold py-2 rounded-lg shadow text-sm mb-4 hover:bg-gray-100 transition">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4">
+      Continue with Google
+    </button>
+
+    <div class="relative flex items-center justify-center my-4">
+      <div class="absolute w-full border-t border-slate-600"></div>
+      <span class="relative bg-slate-900 px-3 text-xs text-slate-400 rounded-full">or login with email</span>
+    </div>
+
+    <form id="loginForm" class="space-y-3">
+
+      <div>
+        <label class="text-xs text-slate-400">Email</label>
+        <input id="email" type="email" required
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-indigo-500 transition"
+          placeholder="student@college.edu">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-400">Password</label>
+        <input id="password" type="password" required
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-indigo-500 transition"
+          placeholder="••••••••">
+      </div>
+
+      <button type="submit" class="w-full glow-btn py-2 rounded-lg font-semibold text-white">
+        Login
+      </button>
+    </form>
+
+    <p id="errorMsg" class="text-red-400 text-xs mt-2 hidden"></p>
+
+    <p class="text-center text-xs text-slate-400 mt-4">
+      New to PrintSmart?
+      <a href="/students/signup.html" class="text-indigo-400 font-semibold hover:underline">Create account</a>
+    </p>
+
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+    authDomain: "printsmart-ebcdd.firebaseapp.com",
+    projectId: "printsmart-ebcdd"
+  };
+
+  // Prevent multiple initializations
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const auth = firebase.auth();
+
+  // LOADER HTML
+  const loader = document.createElement("div");
+  loader.innerHTML = `
+  <div style="position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:9999">
+    <div style="text-align:center;">
+        <div style="width: 40px; height: 40px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+        <div style="color:white;font-size:16px">Logging in...</div>
+    </div>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  `;
+
+  // 1. EMAIL LOGIN
+  document.getElementById("loginForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const errorMsg = document.getElementById("errorMsg");
+
+    document.body.appendChild(loader);
+    errorMsg.classList.add("hidden");
+
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(err => {
+        // Only remove loader if there is an error
+        if(loader.parentNode) loader.parentNode.removeChild(loader);
+        errorMsg.textContent = err.message;
+        errorMsg.classList.remove("hidden");
+      });
+  });
+
+  // 2. GOOGLE LOGIN
+  function googleLogin() {
+    console.log("Starting Google Login...");
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    // Use Popup (Better for debugging than redirect)
+    auth.signInWithPopup(provider)
+      .then((result) => {
+        console.log("Google Auth Success:", result.user.email);
+        document.body.appendChild(loader);
+        // Redirect will happen in onAuthStateChanged below
+      })
+      .catch((error) => {
+        console.error("Google Auth Error:", error);
+        alert("Login Failed: " + error.message);
+      });
+  }
+
+  // 3. GLOBAL AUTH LISTENER (This handles the redirect)
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      console.log("User detected:", user.uid);
+      
+      // ✅ CRITICAL: Save UID for dashboard
+      localStorage.setItem("studentUID", user.uid);
+      
+      // Redirect
+      window.location.replace("/students/dashboard.html");
+    }
+  });
+</script>
+
+</body>
+</html>

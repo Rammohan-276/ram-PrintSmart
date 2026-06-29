@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+.form-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: url("../assets/ocean-bg.jpg") no-repeat center center/cover; /* replace with your image */
+}
+
+.form-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.marine-form {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px 30px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.marine-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 1rem;
+  color: white;
+  font-weight: 500;
+}
+
+.marine-form input,
+.marine-form textarea,
+.marine-form select {
+  margin-top: 5px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+}
+
+/* Keep textarea style */
+textarea {
+  resize: none;
+  min-height: 80px;
+}
+
+/* Dropdown specific style */
+.marine-form select {
+  background: white;
+  cursor: pointer;
+}
+
+.submit-btn {
+  padding: 10px;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #1e90ff, #00bfff);
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.submit-btn:hover {
+  background: linear-gradient(135deg, #00bfff, #1e90ff);
+}

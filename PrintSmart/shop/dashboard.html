@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Dashboard - PrintSmart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    body {
+      background: linear-gradient(to bottom, #1e1b4b 0%, #020617 40%, #000000 100%);
+      background-attachment: fixed;
+    }
+    .glass { 
+      background: rgba(15, 23, 42, 0.6); 
+      backdrop-filter: blur(12px); 
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    @keyframes pulse-custom {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .8; }
+    }
+    .animate-pulse-custom {
+      animation: pulse-custom 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen pb-10">
+
+<nav class="glass sticky top-0 z-50 border-b border-white/5">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">PrintSmart Partner</h1>
+      <p class="text-[10px] text-slate-400 uppercase tracking-wider" id="shopNameTop">Loading...</p>
+      <p class="text-[8px] text-red-400 font-mono" id="shopIdDebug">Checking ID...</p>
+    </div>
+    <button onclick="logout()" class="text-sm text-slate-400 hover:text-white transition-colors">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto px-4 py-6">
+
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold">Orders Queue</h2>
+    <div class="flex gap-2">
+       <div class="bg-yellow-500/10 border border-yellow-500/30 px-3 py-1 rounded-lg text-xs text-yellow-300">
+         Pending: <span id="count-pending" class="font-bold">0</span>
+       </div>
+    </div>
+  </div>
+
+  <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+    <button id="btn-all" onclick="setFilter('all')" class="filter-tab px-4 py-2 rounded-full text-sm font-medium bg-indigo-600 text-white transition-all whitespace-nowrap">
+      All Orders
+    </button>
+    <button id="btn-pending_approval" onclick="setFilter('pending_approval')" class="filter-tab px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:bg-slate-800 transition-all whitespace-nowrap">
+      Pending Approval
+    </button>
+    <button id="btn-approved" onclick="setFilter('approved')" class="filter-tab px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:bg-slate-800 transition-all whitespace-nowrap">
+      In Progress
+    </button>
+    <button id="btn-printed" onclick="setFilter('printed')" class="filter-tab px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:bg-slate-800 transition-all whitespace-nowrap">
+      Completed
+    </button>
+  </div>
+
+  <div id="loadingState" class="flex flex-col items-center justify-center py-20 text-indigo-400">
+      <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
+      <p class="animate-pulse font-mono text-sm">Syncing orders...</p>
+  </div>
+
+  <div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 hidden"></div>
+
+  <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-slate-500">
+    <i class="fas fa-box-open text-4xl mb-3 opacity-50"></i>
+    <p>No orders found in this category.</p>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+    authDomain: "printsmart-ebcdd.firebaseapp.com",
+    databaseURL: "https://printsmart-ebcdd-default-rtdb.firebaseio.com",
+    projectId: "printsmart-ebcdd"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // --- 1. STRICT SESSION CHECK ---
+  const currentShopId = localStorage.getItem('shopId'); 
+  const currentShopName = localStorage.getItem('shopName');
+
+  if (!currentShopId) {
+    window.location.href = "shop/index.html"; 
+  }
+
+  document.getElementById('shopNameTop').textContent = currentShopName || 'Dashboard';
+  document.getElementById('shopIdDebug').textContent = `ID: ${currentShopId}`; 
+  
+  // --- 2. FETCH ORDERS ---
+  const ordersRef = ref(db, 'orders');
+  let allOrders = [];
+  let activeFilter = 'all';
+
+  // UI Elements
+  const loader = document.getElementById('loadingState');
+  const container = document.getElementById('ordersContainer');
+  const emptyState = document.getElementById('emptyState');
+
+  onValue(ordersRef, snapshot => {
+    // ✅ DATA ARRIVED: Hide Loader
+    loader.style.display = 'none';
+    container.classList.remove('hidden');
+
+    const data = snapshot.val();
+    
+    if (!data) {
+        allOrders = [];
+        renderOrders();
+        return;
+    }
+    
+    // Filter: Only show orders for THIS logged-in shop
+    allOrders = Object.keys(data)
+      .map(key => ({ id: key, ...data[key] }))
+      .filter(order => order.shopId === currentShopId);
+
+    // Sort: Newest first
+    allOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+    updateStats();
+    renderOrders();
+  });
+
+  // --- 3. RENDER LOGIC ---
+  function renderOrders() {
+    container.innerHTML = '';
+
+    let ordersToRender = [...allOrders];
+    if (activeFilter !== 'all') {
+      ordersToRender = ordersToRender.filter(o => o.status === activeFilter);
+    }
+
+    if (ordersToRender.length === 0) {
+      emptyState.classList.remove('hidden');
+      return; // Stop here if empty
+    } else {
+      emptyState.classList.add('hidden');
+    }
+
+    ordersToRender.forEach(order => {
+      const date = new Date(order.timestamp).toLocaleString();
+      const isPending = order.status === 'pending_approval';
+      const isApproved = order.status === 'approved';
+      
+      const div = document.createElement('div');
+      div.className = 'glass p-5 rounded-2xl flex flex-col gap-4 border-l-4 ' + getStatusColorBorder(order.status);
+
+      div.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+             <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-mono text-slate-400">#${order.id.slice(-6)}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${getStatusBadge(order.status)}">
+                  ${order.status.replace('_', ' ')}
+                </span>
+             </div>
+             <h3 class="font-bold text-lg truncate w-48" title="${order.fileName}">${order.fileName}</h3>
+             
+             <a href="${order.fileUrl}" target="_blank" class="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors mt-1 inline-block">
+                <i class="fas fa-file-pdf"></i> Download File
+             </a>
+             <p class="text-xs text-slate-400 mt-1">${date}</p>
+          </div>
+          <div class="text-right">
+            <div class="text-xl font-bold text-emerald-400">₹${order.totalCost}</div>
+            <div class="text-xs text-slate-400">${order.paymentMethod || 'UPI'}</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-sm bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+           <div class="text-center">
+              <span class="block text-slate-400 text-xs">Pages</span>
+              <span class="font-semibold">${order.detectedPages}</span>
+           </div>
+           <div class="text-center border-l border-slate-700">
+              <span class="block text-slate-400 text-xs">Copies</span>
+              <span class="font-semibold">${order.copies}</span>
+           </div>
+           <div class="text-center border-l border-slate-700">
+              <span class="block text-slate-400 text-xs">Config</span>
+              <span class="font-semibold">${order.pageSize} / ${order.printType}</span>
+           </div>
+        </div>
+
+        <div class="flex flex-col gap-2 mt-2">
+            ${order.screenshotUrl ? `
+              <a href="${order.screenshotUrl}" target="_blank" class="text-center w-full py-2 border border-slate-600 rounded-lg hover:bg-slate-800 text-sm transition-colors text-indigo-300">
+                <i class="fas fa-eye"></i> View Payment Screenshot
+              </a>
+            ` : `<div class="text-center text-xs text-red-400">No Screenshot</div>`}
+
+            <div class="flex gap-2 pt-2 border-t border-slate-700/50">
+              ${isPending ? `
+                <button onclick="window.updateStatus('${order.id}', 'approved')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg font-semibold text-sm transition-colors">Accept</button>
+                <button onclick="window.updateStatus('${order.id}', 'rejected')" class="flex-1 bg-red-600 hover:bg-red-500 py-2 rounded-lg font-semibold text-sm transition-colors">Reject</button>
+              ` : ''}
+
+              ${isApproved ? `
+                <button onclick="window.markAsPrinted('${order.id}')" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-lg font-semibold text-sm transition-colors animate-pulse-custom">
+                  <i class="fas fa-check-circle"></i> Mark as Printed
+                </button>
+              ` : ''}
+
+              ${order.status === 'printed' ? `
+                 <div class="w-full text-center">
+                    <div class="text-xs text-slate-400">Token Number</div>
+                    <div class="text-2xl font-mono font-bold text-yellow-400 tracking-widest">${order.token || '---'}</div>
+                    <div class="text-xs text-green-400 mt-1">Ready for Pickup</div>
+                 </div>
+              ` : ''}
+            </div>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+  }
+
+  // --- 4. ACTION FUNCTIONS ---
+  window.updateStatus = (orderId, newStatus) => {
+    if(!confirm(`Are you sure you want to ${newStatus} this order?`)) return;
+
+    let notificationMsg = "";
+    if(newStatus === "approved") notificationMsg = "✅ Your order has been approved and is being processed.";
+    if(newStatus === "rejected") notificationMsg = "❌ Your order has been rejected by the shop.";
+
+    update(ref(db, `orders/${orderId}`), {
+      status: newStatus,
+      notification: notificationMsg
+    });
+  };
+
+  window.markAsPrinted = (orderId) => {
+    const timeEstimate = prompt("Enter estimated time for pickup (e.g., '15 mins'):", "15 mins");
+    if (timeEstimate) {
+      const token = Math.floor(1000 + Math.random() * 9000);
+      const notificationMsg = `🎉 Order Ready! Your Token is ${token}. Please pick up in ${timeEstimate}.`;
+
+      update(ref(db, `orders/${orderId}`), {
+        status: 'printed',
+        token: token,
+        pickupTime: timeEstimate,
+        notification: notificationMsg 
+      });
+    }
+  };
+
+  window.setFilter = (filter) => {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+      btn.classList.remove('bg-indigo-600', 'text-white');
+      btn.classList.add('text-slate-400');
+    });
+    const activeBtn = document.getElementById(`btn-${filter}`);
+    activeBtn.classList.remove('text-slate-400');
+    activeBtn.classList.add('bg-indigo-600', 'text-white');
+    renderOrders();
+  };
+
+  function updateStats(){
+     document.getElementById('count-pending').textContent = allOrders.filter(o => o.status === 'pending_approval').length;
+  }
+
+  function getStatusBadge(status) {
+    const map = {
+      'pending_approval': 'bg-yellow-500/20 text-yellow-300',
+      'approved': 'bg-blue-500/20 text-blue-300',
+      'printed': 'bg-green-500/20 text-green-300',
+      'rejected': 'bg-red-500/20 text-red-300'
+    };
+    return map[status] || 'bg-slate-700 text-slate-300';
+  }
+
+  function getStatusColorBorder(status) {
+    const map = {
+      'pending_approval': 'border-l-yellow-500',
+      'approved': 'border-l-blue-500',
+      'printed': 'border-l-green-500',
+      'rejected': 'border-l-red-500'
+    };
+    return map[status] || 'border-l-slate-700';
+  }
+
+  // Initialize filter
+  window.setFilter('all'); 
+</script>
+
+<script>
+function logout() {
+  localStorage.removeItem('shopId');
+  localStorage.removeItem('shopName');
+  window.location.href = '../shop/index.html';
+}
+</script>
+
+</body>
+</html>

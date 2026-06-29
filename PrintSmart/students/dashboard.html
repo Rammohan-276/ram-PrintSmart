@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Student Dashboard - PrintSmart</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<style>
+body {
+  background: linear-gradient(to bottom, #1e1b4b 0%, #020617 40%, #000000 100%);
+  background-attachment: fixed;
+}
+.glass-card{
+  background: rgba(15,23,42,0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+</style>
+</head>
+
+<body class="text-slate-100">
+
+<nav class="glass-card sticky top-0 z-50 border-b border-white/10">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
+
+    <div>
+      <h1 class="text-xl font-bold text-indigo-400">PrintSmart</h1>
+      <p class="text-xs text-slate-400">
+        Welcome, <span id="studentName" class="font-bold text-slate-200">Loading...</span>
+      </p>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="window.location.href='/students/order-create.html'"
+        class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors">
+        <i class="fas fa-plus"></i> New Order
+      </button>
+
+      <button onclick="window.logout()"
+        class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold transition-colors">
+        Logout
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h2 class="text-2xl font-bold mb-6">My Orders</h2>
+  
+  <div id="loadingState" class="text-center py-10 text-indigo-300">
+    <i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Syncing your orders...
+  </div>
+
+  <div id="ordersContainer" class="grid gap-5 md:grid-cols-2 lg:grid-cols-3 hidden"></div>
+
+  <div id="emptyState" class="hidden text-center py-20 text-slate-400">
+    <div class="bg-slate-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-folder-open text-2xl"></i>
+    </div>
+    <p>No recent orders found.</p>
+    <p class="text-xs text-slate-500 mt-2">Orders placed before the recent fix might not appear.</p>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+  authDomain: "printsmart-ebcdd.firebaseapp.com",
+  databaseURL: "https://printsmart-ebcdd-default-rtdb.firebaseio.com",
+  projectId: "printsmart-ebcdd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+// --- 1. AUTH STATE LISTENER (The Core Fix) ---
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // ✅ User is logged in. 
+    // We update localStorage just to be safe for other pages
+    localStorage.setItem("studentUID", user.uid);
+    console.log("Logged in as:", user.uid);
+
+    // --- A. GET NAME (Prioritize Google Profile) ---
+    const nameEl = document.getElementById("studentName");
+    
+    // 1. Try Google Display Name first (Instant)
+    if (user.displayName) {
+      nameEl.textContent = user.displayName;
+    }
+
+    // 2. Check Database for override (e.g. from Signup Form)
+    get(ref(db, `students/${user.uid}`)).then(snapshot => {
+      if(snapshot.exists() && snapshot.val().name){
+        nameEl.textContent = snapshot.val().name;
+      } else if (!user.displayName) {
+        nameEl.textContent = "Student"; // Fallback if absolutely no name found
+      }
+    }).catch(() => {
+       // If DB fails (permissions?), keep the Google name or default
+       if(!user.displayName) nameEl.textContent = "Student";
+    });
+
+    // --- B. FETCH ORDERS ---
+    startOrderSync(user.uid);
+
+  } else {
+    // ❌ No user found, go back to login
+    window.location.href = "/students/index.html";
+  }
+});
+
+// --- 2. ORDER SYNC FUNCTION ---
+function startOrderSync(uid) {
+  const container = document.getElementById("ordersContainer");
+  const loading = document.getElementById("loadingState");
+  const empty = document.getElementById("emptyState");
+
+  // Listen for orders
+  onValue(ref(db, "orders"), snapshot => {
+    loading.style.display = 'none'; // Hide loader once data hits
+    
+    const data = snapshot.val();
+    if(!data) {
+        showEmpty(); 
+        return;
+    }
+
+    // Filter orders belonging to this UID
+    const orders = Object.keys(data)
+      .map(key => ({ id: key, ...data[key] }))
+      .filter(order => order.userRef === uid) // 🔍 This checks for match
+      .sort((a,b) => b.timestamp - a.timestamp);
+
+    console.log(`Found ${orders.length} orders for this user.`);
+
+    if(orders.length === 0) {
+        showEmpty();
+        return;
+    }
+
+    // Render Orders
+    renderOrders(orders, container);
+    empty.classList.add("hidden");
+    container.classList.remove("hidden");
+  });
+}
+
+function showEmpty() {
+    document.getElementById("ordersContainer").classList.add("hidden");
+    document.getElementById("emptyState").classList.remove("hidden");
+}
+
+function renderOrders(orders, container) {
+  container.innerHTML = "";
+  
+  orders.forEach(order => {
+    const isPrinted = order.status === "printed";
+    const isPending = order.status === "pending_approval";
+    
+    // Fallback status color
+    let statusColor = "bg-slate-700";
+    if(isPending) statusColor = "bg-yellow-600";
+    if(isPrinted) statusColor = "bg-green-600";
+    if(order.status === 'rejected') statusColor = "bg-red-600";
+
+    const div = document.createElement("div");
+    div.className = "glass-card p-5 rounded-2xl shadow-lg space-y-4 transition-all hover:bg-slate-800/50";
+
+    div.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold truncate w-40 text-indigo-200" title="${order.fileName}">${order.fileName}</h3>
+          <p class="text-xs text-slate-400 mt-1">${new Date(order.timestamp).toLocaleString()}</p>
+        </div>
+        <span class="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${statusColor}">
+          ${order.status.replace('_',' ')}
+        </span>
+      </div>
+
+      <div class="text-sm space-y-2 border-t border-slate-700/50 pt-3">
+        <div class="flex justify-between"><span>Pages</span> <span class="text-slate-300">${order.detectedPages}</span></div>
+        <div class="flex justify-between"><span>Copies</span> <span class="text-slate-300">${order.copies}</span></div>
+        <div class="flex justify-between font-bold text-emerald-400"><span>Paid</span> <span>₹${order.totalCost}</span></div>
+      </div>
+
+      ${isPending ? `
+        <div class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 p-2 rounded text-xs flex items-center gap-2">
+          <i class="fas fa-clock animate-pulse"></i> Waiting for Shop
+        </div>
+      ` : ""}
+
+      ${isPrinted ? `
+        <div class="bg-gradient-to-r from-green-900/50 to-emerald-900/50 p-3 rounded-xl text-center border border-green-500/30">
+          <div class="text-[10px] text-green-300 uppercase tracking-widest mb-1">Pickup Token</div>
+          <div class="text-3xl font-black text-white tracking-widest">${order.token || '---'}</div>
+          <div class="text-[10px] text-green-300 mt-1">Pickup in: ${order.pickupTime || 'Soon'}</div>
+        </div>
+      ` : ""}
+
+      ${order.notification ? `
+        <div class="bg-indigo-500/10 text-indigo-300 p-2 rounded text-xs flex gap-2 items-center">
+          <i class="fas fa-bell"></i> ${order.notification}
+        </div>
+      ` : ""}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Global Logout
+window.logout = function() {
+  signOut(auth).then(() => {
+    localStorage.clear();
+    window.location.href = "index.html";
+  }).catch((error) => {
+    console.error("Logout error", error);
+  });
+}
+</script>
+
+</body>
+</html>

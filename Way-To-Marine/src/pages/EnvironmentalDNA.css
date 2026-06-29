@@ -1,0 +1,655 @@
+/* Environmental DNA Module Styles */
+.environmental-dna {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0f9ff 100%);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Header Styles */
+.module-header {
+  text-align: center;
+  margin-bottom: 30px;
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 30px;
+  top: 30px;
+  padding: 12px 20px;
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: #047857;
+  transform: translateY(-2px);
+}
+
+.module-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0 0 15px 0;
+  background: linear-gradient(135deg, #059669, #0891b2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.module-description {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Statistics Overview */
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card.samples .stat-icon {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.stat-card.sequences .stat-icon {
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+}
+
+.stat-card.species .stat-icon {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.stat-card.accuracy .stat-icon {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.stat-info h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* Control Panel */
+.control-panel {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 30px;
+  align-items: end;
+}
+
+.control-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 15px 0;
+}
+
+.analysis-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.analysis-btn {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+}
+
+.analysis-btn:hover {
+  border-color: #059669;
+  background: #f0fdf4;
+}
+
+.analysis-btn.active {
+  border-color: #059669;
+  background: #059669;
+  color: white;
+}
+
+.sample-select,
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.sample-select:focus,
+.search-input:focus {
+  outline: none;
+  border-color: #059669;
+}
+
+/* Main Grid Layout */
+.edna-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr 300px;
+  gap: 25px;
+  min-height: 600px;
+}
+
+@media (max-width: 1400px) {
+  .edna-grid {
+    grid-template-columns: 300px 1fr 280px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .edna-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  
+  .control-panel {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .analysis-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Left Panel Styles */
+.left-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.sample-cards {
+  padding: 20px;
+}
+
+.sample-cards h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.sample-list {
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sample-card {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.sample-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(5, 150, 105, 0.15);
+  border-color: #059669;
+}
+
+.sample-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sample-header h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.species-count {
+  background: #059669;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sample-details {
+  margin-bottom: 15px;
+}
+
+.sample-details p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sample-details strong {
+  color: #1e293b;
+}
+
+.sample-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.analyze-btn,
+.detail-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.analyze-btn {
+  background: #059669;
+  color: white;
+  flex: 1;
+}
+
+.analyze-btn:hover {
+  background: #047857;
+}
+
+.detail-btn {
+  background: #e2e8f0;
+  color: #64748b;
+  flex: 1;
+}
+
+.detail-btn:hover {
+  background: #cbd5e1;
+  color: #475569;
+}
+
+/* Center Panel Styles */
+.center-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+}
+
+.analysis-section h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.chart-container {
+  margin-top: 15px;
+}
+
+.conservation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.conservation-card {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.conservation-card h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #059669;
+  margin: 0 0 15px 0;
+}
+
+.species-status {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.species-name {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Right Panel Styles */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chart-section,
+.protocol-section,
+.tools-section,
+.notes-section {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.chart-section h3,
+.protocol-section h3,
+.tools-section h3,
+.notes-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 15px 0;
+}
+
+/* Protocol Steps */
+.protocol-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: #f0fdf4;
+  border-radius: 10px;
+}
+
+.step-number {
+  background: #059669;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.step-content p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Tool Buttons */
+.tool-buttons {
+  display: grid;
+  gap: 10px;
+}
+
+.tool-btn {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tool-btn.primary {
+  background: #059669;
+  color: white;
+}
+
+.tool-btn.primary:hover {
+  background: #047857;
+  transform: translateY(-2px);
+}
+
+.tool-btn.secondary {
+  background: #0891b2;
+  color: white;
+}
+
+.tool-btn.secondary:hover {
+  background: #0e7490;
+  transform: translateY(-2px);
+}
+
+.tool-btn.tertiary {
+  background: #7c3aed;
+  color: white;
+}
+
+.tool-btn.tertiary:hover {
+  background: #6d28d9;
+  transform: translateY(-2px);
+}
+
+.tool-btn.quaternary {
+  background: #dc2626;
+  color: white;
+}
+
+.tool-btn.quaternary:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+/* Notes Section */
+.note-card {
+  background: #f0fdf4;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 4px solid #059669;
+  margin-bottom: 15px;
+}
+
+.note-card:last-child {
+  margin-bottom: 0;
+}
+
+.note-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 10px 0;
+}
+
+.note-card ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.note-card li {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+/* Scrollbar Styles */
+.sample-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sample-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.sample-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.sample-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .environmental-dna {
+    padding: 15px;
+  }
+  
+  .module-header {
+    padding: 20px;
+  }
+  
+  .back-button {
+    position: static;
+    margin-bottom: 15px;
+  }
+  
+  .module-title {
+    font-size: 2rem;
+  }
+  
+  .stats-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .control-panel {
+    padding: 20px;
+    gap: 20px;
+  }
+  
+  .analysis-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .sample-card {
+    padding: 12px;
+  }
+  
+  .sample-actions {
+    flex-direction: column;
+  }
+  
+  .conservation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .module-title {
+    font-size: 1.8rem;
+  }
+  
+  .stat-card {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .sample-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .step {
+    flex-direction: column;
+    text-align: center;
+  }
+}

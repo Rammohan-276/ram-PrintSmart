@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Create Order - PrintSmart</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+body {
+  background: radial-gradient(circle at top left, #1e1b4b 0%, #020617 35%, #000000 100%);
+  background-attachment: fixed;
+  color: #e2e8f0;
+}
+
+.glass-card {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glow-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  transition: all 0.3s ease;
+}
+.glow-btn:hover {
+  box-shadow: 0 0 20px rgba(99,102,241,0.5);
+  transform: translateY(-1px);
+}
+.glow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Custom Scrollbar for file list */
+.file-list::-webkit-scrollbar { width: 6px; }
+.file-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+/* Progress Bar Animation */
+.progress-bar { transition: width 0.3s ease; }
+
+/* Spinner for file scan */
+.small-spinner {
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top: 2px solid #6366f1;
+  width: 12px;
+  height: 12px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+</head>
+
+<body>
+
+<div class="min-h-screen flex items-center justify-center px-4 py-8 fade-in">
+<div class="w-full max-w-lg">
+
+<div class="flex items-center justify-between mb-6">
+  <button onclick="window.history.back()" class="text-sm text-indigo-400 hover:text-white flex items-center gap-2 transition">
+    <i class="fas fa-arrow-left"></i> Back
+  </button>
+  <div class="flex items-center gap-2">
+    <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+    <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">New Order</span>
+  </div>
+</div>
+
+<div class="glass-card rounded-2xl p-6 sm:p-8 space-y-6 relative overflow-hidden">
+
+<form id="orderForm" class="space-y-6">
+
+  <div>
+    <label class="block text-sm font-semibold text-slate-300 mb-2">Upload Documents</label>
+    <div class="relative group">
+      <input type="file" id="fileInput" multiple accept=".pdf, .docx, .doc, .jpg, .jpeg, .png" 
+        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+      
+      <div class="border-2 border-dashed border-slate-600 rounded-xl p-6 flex flex-col items-center justify-center text-center group-hover:border-indigo-500 group-hover:bg-indigo-500/5 transition-all bg-slate-900/40">
+        <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+          <i class="fas fa-cloud-upload-alt text-indigo-400 text-xl"></i>
+        </div>
+        <p class="text-sm font-medium text-white">Tap to upload files</p>
+        <p class="text-[10px] text-slate-400 mt-1">PDF, DOCX, JPG, PNG supported</p>
+      </div>
+    </div>
+
+    <div id="fileListContainer" class="hidden mt-4">
+      <p class="text-xs text-slate-400 mb-2 font-semibold">Selected Files:</p>
+      <div id="fileList" class="file-list max-h-32 overflow-y-auto space-y-2 pr-1">
+        <p id="noFilesMsg" class="text-center text-sm text-slate-500 py-4">No files selected.</p>
+      </div>
+      <div class="mt-3 flex justify-between items-center bg-indigo-500/20 px-3 py-2 rounded-lg border border-indigo-500/30">
+        <span class="text-xs text-indigo-200">Total Print Pages</span>
+        <span id="totalPageCountDisplay" class="text-sm font-bold text-white">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    
+    <div>
+      <label class="text-xs text-slate-400 mb-1 block">Copies</label>
+      <div class="bg-slate-900/60 border border-slate-700 rounded-lg flex items-center px-3 py-2">
+        <i class="fas fa-copy text-indigo-400 text-xs mr-2"></i>
+        <input type="number" id="copies" min="1" value="1" onchange="renderFileList()"
+          class="w-full bg-transparent outline-none text-sm font-semibold"/>
+      </div>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-400 mb-1 block">Paper Size</label>
+      <div class="bg-slate-900/60 border border-slate-700 rounded-lg flex items-center px-3 py-2">
+        <i class="fas fa-expand text-indigo-400 text-xs mr-2"></i>
+        <select id="pageSize" class="w-full bg-transparent outline-none text-sm font-semibold text-slate-200">
+          <option value="A4" class="bg-slate-900">A4 (Standard)</option>
+          <option value="A3" class="bg-slate-900">A3 (Large)</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-400 mb-1 block">Color Mode</label>
+      <div class="bg-slate-900/60 border border-slate-700 rounded-lg flex items-center px-3 py-2">
+        <i class="fas fa-palette text-indigo-400 text-xs mr-2"></i>
+        <select id="printType" class="w-full bg-transparent outline-none text-sm font-semibold text-slate-200">
+          <option value="bw" class="bg-slate-900">Black & White</option>
+          <option value="color" class="bg-slate-900">Color</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-400 mb-1 block">Sides</label>
+      <div class="bg-slate-900/60 border border-slate-700 rounded-lg flex items-center px-3 py-2">
+        <i class="fas fa-book-open text-indigo-400 text-xs mr-2"></i>
+        <select id="printSide" class="w-full bg-transparent outline-none text-sm font-semibold text-slate-200">
+          <option value="single" class="bg-slate-900">Single Side (Default) - ₹2</option>
+          <option value="double" class="bg-slate-900">Double Sided - ₹1.5</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="space-y-3 pt-2 border-t border-slate-700/50">
+    <div>
+      <label class="text-xs font-bold text-slate-400 uppercase tracking-wide">Select City</label>
+      <select id="citySelect" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none transition">
+        <option value="">Choose Location</option>
+        <option value="Delhi">Delhi</option>
+        <option value="Noida">Noida</option>
+        <option value="Greater Noida">Greater Noida</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs font-bold text-slate-400 uppercase tracking-wide">Select Shop</label>
+      <select id="shopSelect" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none transition disabled:opacity-50">
+        <option value="">Select city first</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="uploadProgressContainer" class="hidden">
+    <div class="flex justify-between text-xs text-slate-400 mb-1">
+      <span>Uploading files to server...</span>
+      <span id="uploadPercent">0%</span>
+    </div>
+    <div class="w-full bg-slate-800 rounded-full h-1.5">
+      <div id="progressBar" class="bg-indigo-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <button type="submit" id="submitBtn" disabled class="glow-btn w-full py-4 rounded-xl font-bold text-white shadow-lg flex justify-center items-center gap-2 mt-4">
+    <span>Calculate Bill & Proceed</span> 
+    <i class="fas fa-arrow-right"></i>
+  </button>
+
+</form>
+
+</div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+// --- 1. CONFIGURATION ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDFoM9lP2TFF0PqgGwtAFN8YoGSJznhujc",
+  authDomain: "printsmart-ebcdd.firebaseapp.com",
+  databaseURL: "https://printsmart-ebcdd-default-rtdb.firebaseio.com",
+  projectId: "printsmart-ebcdd"
+};
+
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dfdwbx1lk/auto/upload";
+const CLOUDINARY_UPLOAD_PRESET = "printsmart_unsigned"; 
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Setup PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// Elements
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+const fileListContainer = document.getElementById("fileListContainer");
+const totalPageCountDisplay = document.getElementById("totalPageCountDisplay");
+const citySelect = document.getElementById("citySelect");
+const shopSelect = document.getElementById("shopSelect");
+const submitBtn = document.getElementById("submitBtn");
+const progressBar = document.getElementById("progressBar");
+const uploadPercent = document.getElementById("uploadPercent");
+const uploadProgressContainer = document.getElementById("uploadProgressContainer");
+const copiesInput = document.getElementById("copies");
+const noFilesMsg = document.getElementById("noFilesMsg");
+
+
+let allShops = {};
+// Map to store files: {id: {file: FileObject, pages: number, status: string}}
+let fileMap = new Map(); 
+
+// Expose removeFile to the global scope for use in inline onclick
+window.removeFile = removeFile; 
+
+// --- 2. VALIDATION & UI CONTROLS ---
+
+/**
+ * Toggles the submit button based on file and shop selection.
+ */
+function validateFormAndToggleSubmit() {
+    const isReady = fileMap.size > 0 && shopSelect.value !== "";
+    submitBtn.disabled = !isReady;
+
+    if (fileMap.size === 0) {
+        fileListContainer.classList.add("hidden");
+    } else {
+        fileListContainer.classList.remove("hidden");
+    }
+}
+
+// --- 3. FIREBASE SHOPS ---
+onValue(ref(db, "shops"), snapshot => {
+  allShops = snapshot.val() || {};
+});
+
+// Listener for city selection change
+citySelect.addEventListener("change", () => {
+  const selectedCity = citySelect.value;
+  shopSelect.innerHTML = '<option value="">Select shop</option>';
+  
+  Object.keys(allShops).forEach(shopId => {
+    const shop = allShops[shopId];
+    if(shop.city === selectedCity && shop.approved === true){
+      const option = document.createElement("option");
+      option.value = shopId;
+      option.textContent = shop.name;
+      shopSelect.appendChild(option);
+    }
+  });
+  validateFormAndToggleSubmit();
+});
+
+// Listener for shop selection change
+shopSelect.addEventListener("change", validateFormAndToggleSubmit);
+
+
+// --- 4. PAGE COUNTING HELPERS ---
+
+async function countPdfPages(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    // Using {data: arrayBuffer} for better cross-browser compatibility
+    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise; 
+    return pdf.numPages;
+}
+
+async function countDocxPages(file) {
+    try {
+        const zip = await JSZip.loadAsync(file);
+        const appXml = await zip.file("docProps/app.xml").async("string");
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(appXml, "text/xml");
+        const pages = xmlDoc.getElementsByTagName("Pages")[0].textContent;
+        return parseInt(pages) || 1; 
+    } catch { return 1; }
+}
+
+// --- 5. FILE MANAGEMENT & UI RENDERING ---
+
+/**
+ * Updates the total page count and re-renders the file list UI.
+ */
+function renderFileList() {
+    fileList.innerHTML = "";
+    let totalPagesGlobal = 0;
+    
+    if (fileMap.size === 0) {
+        fileList.appendChild(noFilesMsg);
+        totalPageCountDisplay.textContent = 0;
+        validateFormAndToggleSubmit();
+        return;
+    }
+
+    // Sort map by file ID to keep consistent order
+    const sortedFileEntries = Array.from(fileMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    
+    sortedFileEntries.forEach(([id, data]) => {
+        totalPagesGlobal += data.pages;
+        
+        let iconClass = "fa-file-alt";
+        let colorClass = "text-slate-400";
+        if (data.file.type.includes("pdf")) { iconClass = "fa-file-pdf"; colorClass = "text-red-400"; }
+        else if (data.file.name.endsWith(".docx") || data.file.name.endsWith(".doc")) { iconClass = "fa-file-word"; colorClass = "text-blue-400"; }
+        else if (data.file.type.includes("image")) { iconClass = "fa-file-image"; colorClass = "text-pink-400"; }
+
+        const pagesDisplay = data.status === "Scanning..." ? `<span class="small-spinner mr-2"></span> Scanning...` : `${data.pages} pgs`;
+
+        const div = document.createElement("div");
+        div.className = "flex justify-between items-center bg-slate-800/50 p-2 rounded border border-slate-700";
+        div.innerHTML = `
+            <div class="flex items-center gap-2 overflow-hidden">
+                <i class="fas ${iconClass} ${colorClass}"></i>
+                <span class="text-xs truncate max-w-[150px]">${data.file.name}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-mono bg-slate-700 px-2 py-0.5 rounded text-slate-300">${pagesDisplay}</span>
+                <button type="button" onclick="removeFile('${id}')" title="Remove File" class="text-red-500 hover:text-red-400 transition text-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        fileList.appendChild(div);
+    });
+
+    totalPageCountDisplay.textContent = totalPagesGlobal * parseInt(copiesInput.value);
+    validateFormAndToggleSubmit(); // Re-validate after rendering
+}
+
+/**
+ * Removes a file from the map and re-renders the list.
+ */
+function removeFile(id) {
+    fileMap.delete(id);
+    renderFileList();
+}
+
+/**
+ * Listener for new file selection. Adds new files to the map and calculates pages.
+ */
+fileInput.addEventListener("change", async (e) => {
+    const newFiles = Array.from(e.target.files);
+    if (newFiles.length === 0) return;
+
+    submitBtn.disabled = true; // Disable submit while scanning
+
+    // Process new files one by one
+    for (const file of newFiles) {
+        // Use file name + size as a unique ID to avoid duplicates of the exact same file
+        const fileId = file.name + file.size + file.lastModified;
+        
+        // Skip if this file is already in the map (by a simple heuristic)
+        if (fileMap.has(fileId)) continue;
+
+        // 1. Add file to map with placeholder status
+        fileMap.set(fileId, { file: file, pages: 0, status: "Scanning..." });
+        renderFileList(); // Update UI immediately with 'Scanning...'
+        
+        let pages = 1; 
+        try {
+            if (file.type.includes("pdf")) {
+                pages = await countPdfPages(file);
+            } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+                pages = await countDocxPages(file);
+            }
+        } catch (err) {
+            console.warn("Count Error for " + file.name, err);
+            pages = 1; // Fallback
+        }
+        
+        // 2. Update map with final page count
+        fileMap.set(fileId, { file: file, pages: pages, status: "Calculated" });
+        renderFileList(); // Final UI update
+    }
+    
+    // CRITICAL FIX: Clear the input value to allow adding more files.
+    e.target.value = null; 
+    
+    validateFormAndToggleSubmit(); // Re-enable submit if conditions are met
+});
+
+// --- 6. BATCH UPLOAD & SUBMIT ---
+document.getElementById("orderForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // CRITICAL FIX: The validation check is now correct. If it fails here, it means the
+    // button was somehow manually re-enabled or the user used keyboard submit.
+    if (fileMap.size === 0 || !shopSelect.value) {
+        alert("Please select at least one document and a print shop.");
+        return;
+    }
+
+    // Start Loading UI
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="animate-spin mr-2"><i class="fas fa-circle-notch"></i></span> Uploading Files...`;
+    uploadProgressContainer.classList.remove("hidden");
+
+    try {
+        const uploadedUrls = [];
+        let completed = 0;
+        const totalFiles = fileMap.size;
+
+        // Loop upload for multiple files
+        for (const data of fileMap.values()) {
+            const file = data.file;
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+            // Use fetch with a simple progress update (not actual upload progress, but file-by-file progress)
+            const response = await fetch(CLOUDINARY_URL, { method: "POST", body: formData });
+            
+            if(!response.ok) throw new Error("Upload Failed for " + file.name);
+            
+            const uploadData = await response.json();
+            uploadedUrls.push(uploadData.secure_url);
+
+            // Update Progress Bar
+            completed++;
+            const percent = Math.round((completed / totalFiles) * 100);
+            progressBar.style.width = `${percent}%`;
+            uploadPercent.textContent = `${percent}%`;
+        }
+
+        // Gather Config
+        const copies = parseInt(copiesInput.value);
+        const printType = document.getElementById("printType").value;
+        const pageSize = document.getElementById("pageSize").value;
+        const printSide = document.getElementById("printSide").value;
+        const totalPagesGlobal = Array.from(fileMap.values()).reduce((sum, data) => sum + data.pages, 0);
+
+        // Prepare Data for Billing
+        const orderData = {
+            fileUrl: uploadedUrls[0], 
+            allFileUrls: uploadedUrls, 
+            fileName: fileMap.size === 1 ? Array.from(fileMap.values())[0].file.name : `${fileMap.size} Documents`,
+            detectedPages: totalPagesGlobal,
+            copies: copies,
+            printType: printType,
+            pageSize: pageSize,
+            printSide: printSide, 
+            shopId: shopSelect.value,
+            shopName: shopSelect.options[shopSelect.selectedIndex].text,
+            city: citySelect.value,
+            totalPrintPages: totalPagesGlobal * copies
+        };
+
+        // Save & Redirect
+        localStorage.setItem("printOrder", JSON.stringify(orderData));
+        
+        window.location.href = "billing.html"; 
+
+    } catch (error) {
+        console.error("Full Submission Error:", error);
+        alert("Order failed. Please check network/file type. Error: " + error.message);
+        submitBtn.innerHTML = `Calculate Bill & Proceed <i class="fas fa-arrow-right"></i>`;
+        uploadProgressContainer.classList.add("hidden");
+        validateFormAndToggleSubmit(); // Re-enable if files/shop are still selected
+    }
+});
+
+// Initial validation check on load
+validateFormAndToggleSubmit();
+</script>
+
+</body>
+</html>
